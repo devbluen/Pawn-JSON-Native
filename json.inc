@@ -1,3 +1,4 @@
+
 #if defined _jsonblu_function
 	#endinput
 #endif
@@ -103,6 +104,15 @@ static stock bool:JSON_GetValueRaw(const jsonStr[], const key[], value[], const 
     }
 
     strmid(value, jsonStr, startPos, endPos, size);
+    return true;
+}
+
+stock bool:JSON_HasKey(const jsonStr[], const key[]) {
+    new keyWithQuotes[64];
+    format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
+
+    new pos = strfind(jsonStr, keyWithQuotes, true);
+    if (pos == -1) return false;
     return true;
 }
 
@@ -241,25 +251,37 @@ stock bool:JSON_GetArrayItem(const jsonStr[], const key[], index, value[], const
 
 */
 
-stock JSON_AddItem(const title[], const fmt[], {Float, _}:...) {
+stock JSON_AddString(const title[], const value[]) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "\"%s\": \"%s\"", title, value);
+    return buffer;
+}
 
-    new 
-        fmtBuff[MAX_JSON_LEN],
-        titleBuff[32],
-        optionBuff[sizeof fmtBuff + 32]
-    ;
+stock JSON_AddInt(const title[], value) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "\"%s\": %d", title, value);
+    return buffer;
+}
 
-    format(fmtBuff, sizeof fmtBuff, fmt, ___(2));
+stock JSON_AddBool(const title[], bool:value) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "\"%s\": %s", title, value ? "true" : "false");
+    return buffer;
+}
 
-    if(strlen(title)) format(titleBuff, sizeof titleBuff, "\"%s\": ", title);
+stock JSON_AddFloat(const title[], Float:value) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "\"%s\": %.2f", title, value);
+    return buffer;
+}
 
-    if(IsNumeric(fmtBuff) || IsFloat(fmtBuff)) format(optionBuff, sizeof optionBuff, "%s%s", titleBuff, fmtBuff);
-    else format(optionBuff, sizeof optionBuff, "%s\"%s\"", titleBuff, fmtBuff);
-    return optionBuff;
+stock JSON_AddObject(const title[], const value[]) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "\"%s\": %s", title, value);
+    return buffer;
 }
 
 stock JSON_AddItemArray(const fmt[], {Float, _}:...) {
-
     new optionBuff[MAX_JSON_LEN];
     format(optionBuff, sizeof optionBuff, fmt, ___(1));
     strcopy(optionBuff, JSON_AddItem("", optionBuff));
