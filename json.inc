@@ -277,15 +277,62 @@ stock JSON_AddFloat(const title[], Float:value) {
 
 stock JSON_AddObject(const title[], const value[]) {
     new buffer[MAX_JSON_LEN];
-    format(buffer, sizeof(buffer), "\"%s\": %s", title, value);
+    format(buffer, sizeof(buffer), "\"%s\": {%s}", title, value);
     return buffer;
 }
 
-stock JSON_AddItemArray(const fmt[], {Float, _}:...) {
-    new optionBuff[MAX_JSON_LEN];
-    format(optionBuff, sizeof optionBuff, fmt, ___(1));
-    strcopy(optionBuff, JSON_AddItem("", optionBuff));
-    return optionBuff;
+stock JSON_AddArrayString(const value[]) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "\"%s\"", value);
+    return buffer;
+}
+
+stock JSON_AddArrayFloat(Float:value) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "%f", value);
+    return buffer;
+}
+
+stock JSON_AddArrayBool(bool:value) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "%s", value ? "true" : "false");
+    return buffer;
+}
+
+stock JSON_AddArrayInt(value) {
+    new buffer[MAX_JSON_LEN];
+    format(buffer, sizeof(buffer), "%d", value);
+    return buffer;
+}
+
+stock JSON_AddArray(const title[], {Float, _}:...) {
+    new 
+        buffer[MAX_JSON_LEN],
+        content[MAX_JSON_LEN],
+        num = numargs()
+    ;
+
+    content[0] = '\0';
+
+    for(new i = 1; i < num; i++) {
+        new argStr[256];
+        
+        new j = 0;
+        while(j < sizeof(argStr) - 1) {
+            new chr = getarg(i, j);
+            argStr[j] = chr;
+            if(chr == 0) break;
+            j++;
+        }
+
+        strcat(content, argStr);
+
+        if(i < num - 1) 
+            strcat(content, ", ");
+    }
+
+    format(buffer, sizeof(buffer), "\"%s\": [%s]", title, content);
+    return buffer;
 }
 
 stock JSON_Object(...) {
@@ -321,22 +368,19 @@ stock JSON_Object(...) {
     return dest; 
 }
 
-stock JSON_Array(const title[], ...) {
+stock JSON_Array(...) {
     new 
-        dest[1024],
+        dest[MAX_JSON_LEN],
         maxlength = sizeof dest,
         num = numargs(),
         cur_len = 0
     ;
 
-    format(dest, maxlength, "\"%s\": ", title);
-    cur_len = strlen(dest);
-
     if (cur_len < maxlength - 1)
         dest[cur_len++] = '[';
 
-    for(new i = 1; i < num; i++) {
-        if (i > 1 && cur_len < maxlength - 2) {
+    for(new i = 0; i < num; i++) {
+        if (i > 0 && cur_len < maxlength - 2) {
             dest[cur_len++] = ',';
             dest[cur_len++] = ' ';
         }
