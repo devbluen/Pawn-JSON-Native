@@ -284,12 +284,6 @@ stock JSON_AddFloat(const title[], Float:value) {
     return buffer;
 }
 
-stock JSON_AddObject(const title[], const value[]) {
-    new buffer[MAX_JSON_LEN];
-    format(buffer, sizeof(buffer), "\"%s\": {%s}", title, value);
-    return buffer;
-}
-
 stock JSON_AddArrayString(const value[]) {
     new buffer[MAX_JSON_LEN];
     format(buffer, sizeof(buffer), "\"%s\"", value);
@@ -311,6 +305,36 @@ stock JSON_AddArrayBool(bool:value) {
 stock JSON_AddArrayInt(value) {
     new buffer[MAX_JSON_LEN];
     format(buffer, sizeof(buffer), "%d", value);
+    return buffer;
+}
+
+stock JSON_AddObject(const title[], {Float, _}:...) {
+    new 
+        buffer[MAX_JSON_LEN],
+        content[MAX_JSON_LEN],
+        num = numargs()
+    ;
+
+    content[0] = '\0';
+
+    for(new i = 1; i < num; i++) {
+        new argStr[256];
+        
+        new j = 0;
+        while(j < sizeof(argStr) - 1) {
+            new chr = getarg(i, j);
+            argStr[j] = chr;
+            if(chr == 0) break;
+            j++;
+        }
+
+        strcat(content, argStr);
+
+        if(i < num - 1) 
+            strcat(content, ", ");
+    }
+
+    format(buffer, sizeof(buffer), "\"%s\": {%s}", title, content);
     return buffer;
 }
 
