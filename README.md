@@ -6,14 +6,24 @@ A lightweight and efficient library to generate and parse JSON data directly in 
 ```pawn
 new payload[MAX_JSON_LEN];
 payload = JSON_Object(
-    JSON_AddItem("string", "%s", "string"),
-    JSON_AddItem("floating", "%f", 210.12),
-    JSON_AddItem("int", "%d", 69),
-    JSON_Array("myarray", 
-        JSON_AddItemArray("%s", "option1"),
-        JSON_AddItemArray("%s", "option2"),
-        JSON_AddItemArray("%s", "option3"),
-        JSON_AddItemArray("%s", "option4")
+    JSON_AddString("string", "string"),
+    JSON_AddFloat("floating", 210.12),
+    JSON_AddInt("int", 69),
+    JSON_AddArray("myarray", 
+        JSON_AddArrayString("option1"),
+        JSON_AddArrayString("option2"),
+        JSON_AddArrayString("option3"),
+        JSON_AddArrayString("option4")
+    ),
+    JSON_AddArray("myobject", 
+        JSON_Object(
+            JSON_AddInt("slot", 0), 
+            JSON_AddInt("item", 22)
+        ),
+        JSON_Object(
+            JSON_AddInt("slot", 1), 
+            JSON_AddInt("item", 233)
+        )
     )
 );
 ```
@@ -28,6 +38,16 @@ payload = JSON_Object(
     "option2", 
     "option3", 
     "option4"
+  ],
+  "myobject": [
+    {
+      "slot": 0,
+      "item": 22
+    },
+    {
+      "slot": 1,
+      "item": 233
+    }
   ]
 }
 ```
@@ -46,21 +66,34 @@ JSON_GetFloat(payload, "floating", floatingBuff);
 JSON_GetInt(payload, "int", intBuff);
 arrayLength = JSON_GetArrayLen(payload, "myarray");
 
-Results:
-stringBuff -> string
-floatingBuff -> 210.119995
-intBuff -> 69
-arrayLength -> myArray: 4
+printf("stringBuff: %s", stringBuff); // Result -> string
+printf("floating: %f", floatingBuff); // Result -> 210.110000
+printf("intBuff: %d", intBuff); // Result -> 69
+printf("arrayLength: %d", arrayLength); // Result -> 4
 
 for(new i = 0; i < arrayLength; i++) {
     new stringArray[32];
     JSON_GetArrayItem(payload, "myarray", i, stringArray);
 
-    Results:
-      - option1
-      - option2
-      - option3
-      - option4
+    printf("stringArray: %s", stringArray); 
+    // Result - 1 -> option1
+    // Result - 2 -> option2
+    // Result - 3 -> option3
+    // Result - 4 -> option4
+}
+
+arrayLength = JSON_GetArrayLen(payload, "myobject");
+for(new i = 0; i < arrayLength; i++) {
+    new stringObject[32];
+    JSON_GetArrayItem(payload, "myobject", i, stringObject);
+
+    new slotBuff, itemBuff;
+    JSON_GetInt(stringObject, "slot", slotBuff);
+    JSON_GetInt(stringObject, "item", itemBuff);
+
+    printf("stringObject (%i): Slot: %d | Item: %d", i, slotBuff, itemBuff); 
+    // Result - 1 -> Slot: 0 | Item: 22
+    // Result - 2 -> Slot: 1 | Item: 233
 }
 ```
 
@@ -71,9 +104,17 @@ for(new i = 0; i < arrayLength; i++) {
 ```pawn
 // Creations
 JSON_Object(...);
-JSON_Array(const title[], ...);
-JSON_AddItem(const title[], const fmt[], {Float, _}:...);
-JSON_AddItemArray(const fmt[], {Float, _}:...);
+JSON_Array(...);
+JSON_AddString(const title[], const value[]);
+JSON_AddInt(const title[], value);
+JSON_AddBool(const title[], bool:value);
+JSON_AddFloat(const title[], Float:value);
+JSON_AddObject(const title[], const value[]);
+JSON_AddArray(const title[], {Float, _}:...);
+JSON_AddArrayString(const value[]);
+JSON_AddArrayFloat(Float:value);
+JSON_AddArrayBool(bool:value);
+JSON_AddArrayInt(value);
 
 // Readings
 bool:JSON_GetInt(const jsonStr[], const key[], &value);
