@@ -107,6 +107,43 @@ static stock bool:JSON_GetValueRaw(const jsonStr[], const key[], value[], const 
     return true;
 }
 
+static stock bool:JSON_GetObjectRaw(const jsonStr[], const key[], output[], const size) {
+    new keyWithQuotes[64];
+    format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
+
+    new pos = strfind(jsonStr, keyWithQuotes, true);
+    if (pos == -1) return false;
+
+    pos += strlen(keyWithQuotes);
+    
+    while (jsonStr[pos] != '\0' && jsonStr[pos] <= ' ') pos++;
+    
+    if (jsonStr[pos] != '{') return false;
+
+    new startPos = pos; 
+    new endPos = pos;
+    new braceCount = 0;
+
+    while (jsonStr[endPos] != '\0') {
+        if (jsonStr[endPos] == '{') {
+            braceCount++;
+        } 
+        else if (jsonStr[endPos] == '}') {
+            braceCount--;
+            if (braceCount == 0) {
+                endPos++;
+                break;
+            }
+        }
+        endPos++;
+    }
+
+    if (braceCount != 0) return false;
+
+    strmid(output, jsonStr, startPos, endPos, size);
+    return true;
+}
+
 stock bool:JSON_HasKey(const jsonStr[], const key[]) {
     new keyWithQuotes[64];
     format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
@@ -139,6 +176,9 @@ stock bool:JSON_GetFloat(const jsonStr[], const key[], &Float:value) {
     value = floatstr(tmp);
     return true;
 }
+
+stock bool:JSON_GetObject(const jsonStr[], const key[], value[], const size = sizeof(value))
+    return JSON_GetObjectRaw(jsonStr, key, value, size);
 
 stock bool:JSON_GetString(const jsonStr[], const key[], value[], const size = sizeof(value))
     return JSON_GetValueRaw(jsonStr, key, value, size);
