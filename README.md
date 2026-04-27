@@ -121,6 +121,7 @@ bool:JSON_GetInt(const jsonStr[], const key[], &value);
 bool:JSON_GetBool(const jsonStr[], const key[], &bool:value);
 bool:JSON_GetFloat(const jsonStr[], const key[], &Float:value);
 bool:JSON_GetString(const jsonStr[], const key[], value[], const size = sizeof(value));
+bool:JSON_GetObject(const jsonStr[], const key[], value[], const size = sizeof(value));
 bool:JSON_HasKey(const jsonStr[], const key[]);
 JSON_GetArrayLen(const jsonStr[], const key[]);
 bool:JSON_GetArrayItem(const jsonStr[], const key[], index, value[], const size = sizeof(value));
