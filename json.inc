@@ -1,186 +1,325 @@
 
-static stock bool:SAFE_INDEX(const str[], idx) {
-    return ((idx) >= 0 && (idx) < strlen(str));
+            // Macros
+#if !defined MAX_JSON_KEY_LEN
+    #define MAX_JSON_KEY_LEN 64
+#endif
+
+
+
+/*
+
+                    .oooooo..o ooooooooooooo   .oooooo.     .oooooo.   oooo    oooo  .oooooo..o 
+                    d8P'    `Y8 8'   888   `8  d8P'  `Y8b   d8P'  `Y8b  `888   .8P'  d8P'    `Y8 
+                    Y88bo.           888      888      888 888           888  d8'    Y88bo.      
+                    `"Y8888o.       888      888      888 888           88888[       `"Y8888o.  
+                        `"Y88b      888      888      888 888           888`88b.         `"Y88b 
+                    oo     .d8P      888      `88b    d88' `88b    ooo   888  `88b.  oo     .d8P 
+                    8""88888P'      o888o      `Y8bood8P'   `Y8bood8P'  o888o  o888o 8""88888P'  
+
+*/
+
+static stock bool:IsNumeric(const szInput[]) {
+	new iChar, i = 0;
+	while ((iChar = szInput[i++])) if (!('0' <= iChar <= '9')) return false;
+	return true;
 }
 
-stock bool:json_has_key(const jsonStr[], const key[]) {
+static stock bool:IsFloat(const szInput[]) {
+    
+    new 
+        iChar, 
+        i = 0, 
+        bool:hasPoint = false, 
+        iDigits = 0
+    ;
+
+    if (szInput[0] == '-') i++;
+    while ((iChar = szInput[i++])) {
+        if (iChar == '.') {
+            if (hasPoint) 
+                return false;
+            hasPoint = true;
+        } 
+        else if ('0' <= iChar <= '9') iDigits++;
+        else return false; 
+    }
+    return (hasPoint && iDigits > 0);
+}
+
+static stock bool:SAFE_INDEX(const str[], idx)
+    return (idx >= 0 && idx < strlen(str));
+
+
+
+/*
+
+                    .oooooo.    oooooooooooo ooooooooooooo  .oooooo..o 
+                    d8P'  `Y8b   `888'     `8 8'   888   `8 d8P'    `Y8 
+                    888            888              888      Y88bo.      
+                    888            888oooo8         888       `"Y8888o.  
+                    888     ooooo  888    "         888           `"Y88b 
+                    `88.    .88'   888       o      888      oo     .d8P 
+                    `Y8bood8P'   o888ooooood8     o888o     8""88888P'  
+
+*/
+
+static stock bool:JSON_GetValueRaw(const jsonStr[], const key[], value[], const size) {
     new keyWithQuotes[64];
     format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
 
-    return (strfind(jsonStr, keyWithQuotes, true) != -1);
-}
+    new pos = strfind(jsonStr, keyWithQuotes, true);
+    if (pos == -1) return false;
 
-stock bool:json_string(const jsonStr[], const key[], value[], const size = sizeof(value)) {
-    if (!json_has_key(jsonStr, key)) return false;
+    pos += strlen(keyWithQuotes);
+    
+    while (SAFE_INDEX(jsonStr, pos) && (jsonStr[pos] <= ' ')) pos++;
+    if (!SAFE_INDEX(jsonStr, pos)) return false;
 
-    new keyWithQuotes[64];
-    format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
+    new bool:isString = (jsonStr[pos] == '\"');
+    new startPos = isString ? (pos + 1) : pos;
+    new endPos = startPos;
 
-    new pos1 = strfind(jsonStr, keyWithQuotes, true);
-    if (pos1 == -1) {
-        value[0] = '\0';
-        return false;
-    }
-
-    pos1 += strlen(keyWithQuotes);
-    while (SAFE_INDEX(jsonStr, pos1) && (jsonStr[pos1] == ' ' || jsonStr[pos1] == '\t')) pos1++;
-
-    if (!SAFE_INDEX(jsonStr, pos1)) return false;
-
-    new pos2 = pos1;
-
-    if (jsonStr[pos1] == '\"') {
-        pos1++;
-        pos2 = pos1;
-    }
-
-    while (SAFE_INDEX(jsonStr, pos2)) {
-        // Verifica se é um delimitador e se está escapado
-        if (jsonStr[pos2] == ',' || jsonStr[pos2] == '}' || jsonStr[pos2] == ']') {
-            new backslashes = 0;
-            for (new i = pos2 - 1; i >= 0 && jsonStr[i] == '\\'; i--) {
-                backslashes++;
-            }
-
-            if ((backslashes % 2) == 0) { // Se número de '\' for par, o caractere NÃO está escapado (fim da string)
-                break;
-            }
-            // Se ímpar, o caractere está escapado, então ele faz parte da string
+    if (isString) {
+        while (SAFE_INDEX(jsonStr, endPos)) {
+            if (jsonStr[endPos] == '\"' && jsonStr[endPos - 1] != '\\') break;
+            endPos++;
         }
-        pos2++;
-    }
-
-    if (!SAFE_INDEX(jsonStr, pos2) || pos2 <= pos1) {
-        value[0] = '\0';
-        return false;
-    }
-
-    // Extrai o valor corretamente
-    strmid(value, jsonStr, pos1, pos2, size);
-
-    // Se o último caractere for uma aspas, remove
-    new lastChar = strlen(value) - 1;
-    if (lastChar >= 0 && value[lastChar] == '\"') {
-        value[lastChar] = '\0';
-    }
-
-    return true;
-}
-
-stock bool:json_bool(const jsonStr[], const key[], &value) {
-    if (!json_has_key(jsonStr, key)) return false;
-
-    new stringValue[10]; 
-    json_string(jsonStr, key, stringValue, sizeof stringValue);
-
-    if (strcmp(stringValue, "true", true) == 0) {
-        value = true;
-    } else if (strcmp(stringValue, "false", true) == 0) {
-        value = false;
     } else {
-        return false; // Valor não é um booleano válido
+        while (SAFE_INDEX(jsonStr, endPos) && jsonStr[endPos] != ',' && 
+               jsonStr[endPos] != '}' && jsonStr[endPos] != ']') {
+            endPos++;
+        }
     }
+
+    strmid(value, jsonStr, startPos, endPos, size);
     return true;
 }
 
-stock bool:json_int(const jsonStr[], const key[], &value) {
-    if(!json_has_key(jsonStr, key))
-        return false;
-
-    new stringValue[64];
-    json_string(jsonStr, key, stringValue, sizeof stringValue);
-    value = strval(stringValue);
+stock bool:JSON_GetBool(const jsonStr[], const key[], &bool:value) {
+    new tmp[10];
+    if (!JSON_GetValueRaw(jsonStr, key, tmp, sizeof tmp)) return false;
+    
+    if (strcmp(tmp, "true", true) == 0) value = true;
+    else if (strcmp(tmp, "false", true) == 0) value = false;
+    else return false;
     return true;
 }
 
-stock bool:json_float(const jsonStr[], const key[], &Float:value) {
-    if(!json_has_key(jsonStr, key))
-        return false;
-
-    new stringValue[64];
-    json_string(jsonStr, key, stringValue, sizeof stringValue); 
-    value = floatstr(stringValue);
+stock bool:JSON_GetInt(const jsonStr[], const key[], &value) {
+    new tmp[32];
+    if (!JSON_GetValueRaw(jsonStr, key, tmp, sizeof tmp)) return false;
+    value = strval(tmp);
     return true;
 }
 
-stock json_array_length(const jsonStr[], const key[]) {
+stock bool:JSON_GetFloat(const jsonStr[], const key[], &Float:value) {
+    new tmp[32];
+    if (!JSON_GetValueRaw(jsonStr, key, tmp, sizeof tmp)) return false;
+    value = floatstr(tmp);
+    return true;
+}
+
+stock bool:JSON_GetString(const jsonStr[], const key[], value[], const size = sizeof(value))
+    return JSON_GetValueRaw(jsonStr, key, value, size);
+
+stock JSON_GetArrayLen(const jsonStr[], const key[]) {
     new keyWithQuotes[64];
     format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
 
-    new pos1 = strfind(jsonStr, keyWithQuotes, true);
-    if (pos1 == -1) return 0; // Array não encontrado
+    new pos = strfind(jsonStr, keyWithQuotes, true);
+    if (pos == -1) return 0;
 
-    pos1 += strlen(keyWithQuotes);
-    while (SAFE_INDEX(jsonStr, pos1) && (jsonStr[pos1] == ' ' || jsonStr[pos1] == '\t')) pos1++;
+    pos += strlen(keyWithQuotes);
+    while (SAFE_INDEX(jsonStr, pos) && jsonStr[pos] <= ' ') pos++;
 
-    if (!SAFE_INDEX(jsonStr, pos1) || jsonStr[pos1] != '[') return 0; // Não é um array JSON
+    if (!SAFE_INDEX(jsonStr, pos) || jsonStr[pos] != '[') return 0;
 
-    pos1++; // Avança para dentro do array
+    pos++;
+    new count = 0;
+    
+    while (SAFE_INDEX(jsonStr, pos) && jsonStr[pos] != ']') {
+        while (SAFE_INDEX(jsonStr, pos) && (jsonStr[pos] <= ' ' || jsonStr[pos] == ',')) pos++;
+        if (jsonStr[pos] == ']' || jsonStr[pos] == '\0') break;
+        
+        count++;
+        
+        new depth = 0;
+        while (SAFE_INDEX(jsonStr, pos)) {
+            if (jsonStr[pos] == '{' || jsonStr[pos] == '[') depth++;
+            else if (jsonStr[pos] == '}' || jsonStr[pos] == ']') depth--;
+            
+            if (depth == 0 && (jsonStr[pos] == ',' || jsonStr[pos] == ']')) break;
+            pos++;
+        }
+    }
+    return count;
+}
+
+stock bool:JSON_GetArrayItem(const jsonStr[], const key[], index, value[], const size = sizeof(value)) {
+    new keyWithQuotes[64];
+    format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
+
+    new pos = strfind(jsonStr, keyWithQuotes, true);
+    if (pos == -1) return false;
+
+    pos += strlen(keyWithQuotes);
+    while (SAFE_INDEX(jsonStr, pos) && jsonStr[pos] <= ' ') pos++;
+    
+    if (jsonStr[pos] != '[') return false;
+
+    pos++;
     new count = 0;
 
-    while (SAFE_INDEX(jsonStr, pos1) && jsonStr[pos1] != ']' && jsonStr[pos1] != '\0') {
-        while (SAFE_INDEX(jsonStr, pos1) && (jsonStr[pos1] == ' ' || jsonStr[pos1] == '\t' || jsonStr[pos1] == ',')) pos1++;
+    while (SAFE_INDEX(jsonStr, pos)) {
+        while (SAFE_INDEX(jsonStr, pos) && (jsonStr[pos] <= ' ' || jsonStr[pos] == ',')) pos++;
+        
+        if (jsonStr[pos] == ']' || jsonStr[pos] == '\0') break;
 
-        if (!SAFE_INDEX(jsonStr, pos1)) return count; // Evita acesso inválido
+        new start = pos;
+        new depth = 0;
+        new bool:inString = false;
 
-        if (jsonStr[pos1] == '{') { // Apenas conta objetos, ignorando valores soltos
-            count++;
+        while (SAFE_INDEX(jsonStr, pos)) {
+            if (jsonStr[pos] == '\"' && (pos == 0 || jsonStr[pos-1] != '\\')) {
+                inString = !inString;
+            }
+
+            if (!inString) {
+                if (jsonStr[pos] == '{' || jsonStr[pos] == '[') depth++;
+                else if (jsonStr[pos] == '}' || jsonStr[pos] == ']') {
+                    if (depth == 0 && jsonStr[pos] == ']') break; 
+                    depth--;
+                }
+                
+                if (depth == 0 && jsonStr[pos] == ',') break;
+            }
+            pos++;
         }
 
-        while (SAFE_INDEX(jsonStr, pos1) && jsonStr[pos1] != ',' && jsonStr[pos1] != ']' && jsonStr[pos1] != '\0') pos1++;
+        if (count == index) {
+            strmid(value, jsonStr, start, pos, size);
+            
+            if (value[0] == '\"') {
+                new len = strlen(value);
+                if (len > 1 && value[len-1] == '\"') value[len-1] = '\0';
+                strdel(value, 0, 1);
+            }
+            for(new s = strlen(value) - 1; s >= 0 && value[s] <= ' '; s--) value[s] = '\0';
+            
+            return true;
+        }
+        
+        count++;
+        if (jsonStr[pos] == ']') break;
+        pos++; 
     }
-    return count; // Retorna número correto de objetos no array
+    return false;
 }
 
-stock json_array_get(const jsonStr[], const key[], index, value[], const size = sizeof(value)) {
-    new keyWithQuotes[64];
-    format(keyWithQuotes, sizeof(keyWithQuotes), "\"%s\":", key);
 
-    new pos1 = strfind(jsonStr, keyWithQuotes, true);
-    if (pos1 == -1) return 0; // Array não encontrado
 
-    pos1 += strlen(keyWithQuotes);
-    while (SAFE_INDEX(jsonStr, pos1) && (jsonStr[pos1] == ' ' || jsonStr[pos1] == '\t')) pos1++;
+/*
 
-    if (!SAFE_INDEX(jsonStr, pos1) || jsonStr[pos1] != '[') return 0; // Não é um array JSON
+                    .oooooo.   ooooooooo.   oooooooooooo       .o.       ooooooooooooo ooooo   .oooooo.   ooooo      ooo 
+                    d8P'  `Y8b  `888   `Y88. `888'     `8      .888.      8'   888   `8 `888'  d8P'  `Y8b  `888b.     `8' 
+                    888           888   .d88'  888             .8"888.          888       888  888      888  8 `88b.    8  
+                    888           888ooo88P'   888oooo8       .8' `888.         888       888  888      888  8   `88b.  8  
+                    888           888`88b.     888    "      .88ooo8888.        888       888  888      888  8     `88b.8  
+                    `88b    ooo   888  `88b.   888       o  .8'     `888.       888       888  `88b    d88'  8       `888  
+                    `Y8bood8P'  o888o  o888o o888ooooood8 o88o     o8888o     o888o     o888o  `Y8bood8P'  o8o        `8  
 
-    pos1++; // Avança para dentro do array
-    new count = 0, pos2;
+*/
 
-    while (SAFE_INDEX(jsonStr, pos1) && jsonStr[pos1] != ']' && jsonStr[pos1] != '\0') {
-        while (SAFE_INDEX(jsonStr, pos1) && (jsonStr[pos1] == ' ' || jsonStr[pos1] == '\t' || jsonStr[pos1] == ',')) pos1++;
+stock JSON_AddItem(const title[], const fmt[], {Float, _}:...) {
 
-        if (!SAFE_INDEX(jsonStr, pos1)) return 0; // Verificação de segurança
+    new 
+        fmtBuff[512],
+        titleBuff[32],
+        optionBuff[sizeof fmtBuff + 32]
+    ;
 
-        if (jsonStr[pos1] == '{') { // Caso seja um objeto JSON
-            pos2 = strfind(jsonStr, "}", true, pos1);
-            if (!SAFE_INDEX(jsonStr, pos2) || pos2 <= pos1) return 0; // Objeto inválido
+    format(fmtBuff, sizeof fmtBuff, fmt, ___(2));
 
-            pos2++; // Inclui o fechamento correto do objeto JSON
+    if(strlen(title)) format(titleBuff, sizeof titleBuff, "\"%s\": ", title);
 
-        } else { // Caso seja um valor direto
-            if (jsonStr[pos1] == '\"') {
-                pos1++;
-                pos2 = strfind(jsonStr, "\"", true, pos1);
-            } else {
-                pos2 = pos1;
-                while (SAFE_INDEX(jsonStr, pos2) && jsonStr[pos2] != ',' && jsonStr[pos2] != ']' && jsonStr[pos2] != '\0') pos2++;
-            }
+    if(IsNumeric(fmtBuff) || IsFloat(fmtBuff)) format(optionBuff, sizeof optionBuff, "%s%s", titleBuff, fmtBuff);
+    else format(optionBuff, sizeof optionBuff, "%s\"%s\"", titleBuff, fmtBuff);
+    return optionBuff;
+}
+
+stock JSON_AddItemArray(const fmt[], {Float, _}:...) {
+
+    new optionBuff[512];
+    format(optionBuff, sizeof optionBuff, fmt, ___(1));
+    strcopy(optionBuff, JSON_AddItem("", optionBuff));
+    return optionBuff;
+}
+
+stock JSON_Object(...) {
+    new 
+        dest[512],
+        maxlength = sizeof dest,
+        num = numargs(),
+        cur_len = 0
+    ;
+
+    if (cur_len < maxlength - 1)
+        dest[cur_len++] = '{';
+
+    for(new i = 0; i < num; i++) {
+        if (i > 0 && cur_len < maxlength - 2) {
+            dest[cur_len++] = ',';
+            dest[cur_len++] = ' ';
         }
 
-        if (count == index) { // Encontrou o valor desejado
-            if (!SAFE_INDEX(jsonStr, pos2) || pos2 <= pos1) {
-                value[0] = '\0';
-                return 0;
-            }
-
-            strmid(value, jsonStr, pos1, pos2, size);
-            return 1;
+        new index = 0;
+        while(cur_len < maxlength - 2) {
+            new chari = getarg(i, index++);
+            if (chari == 0) break; 
+            
+            dest[cur_len++] = chari;
         }
-
-        count++;
-        pos1 = pos2 + 1;
     }
 
-    return 0; // Índice fora do alcance
+    if (cur_len < maxlength - 1)
+        dest[cur_len++] = '}';
+
+    dest[cur_len] = '\0'; 
+    return dest; 
+}
+
+stock JSON_Array(const title[], ...) {
+    new 
+        dest[1024],
+        maxlength = sizeof dest,
+        num = numargs(),
+        cur_len = 0
+    ;
+
+    format(dest, maxlength, "\"%s\": ", title);
+    cur_len = strlen(dest);
+
+    if (cur_len < maxlength - 1)
+        dest[cur_len++] = '[';
+
+    for(new i = 1; i < num; i++) {
+        if (i > 1 && cur_len < maxlength - 2) {
+            dest[cur_len++] = ',';
+            dest[cur_len++] = ' ';
+        }
+
+        new index = 0;
+        while(cur_len < maxlength - 2) {
+            new chari = getarg(i, index++);
+            if (chari == 0) break; 
+            
+            dest[cur_len++] = chari;
+        }
+    }
+
+    if (cur_len < maxlength - 1)
+        dest[cur_len++] = ']';
+
+    dest[cur_len] = '\0'; 
+    return dest; 
 }
