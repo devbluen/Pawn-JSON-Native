@@ -8,6 +8,9 @@
     #define MAX_JSON_LEN 512
 #endif
 
+			// Includes
+#include <YSI_Coding\y_va>
+
 
 
 /*
