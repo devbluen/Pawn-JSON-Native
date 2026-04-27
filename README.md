@@ -1,60 +1,86 @@
-# json-native-samp
-This include will help you read JSON without needing plugins. For now this include does not create the JSON, it can only read it, however I will soon be bringing this logic
+# ♟️ Pawn JSON Native (Plugin-less)
+A lightweight and efficient library to generate and parse JSON data directly in Pawn. This include is designed for developers who need JSON support in SA-MP/open.mp without relying on external plugins (.dll or .so)
 
 # 🪶 How to use examples
-### Json Example
+## 🍪 Creation
+```pawn
+new payload[MAX_JSON_LEN];
+payload = JSON_Object(
+    JSON_AddItem("string", "%s", "string"),
+    JSON_AddItem("floating", "%f", 210.12),
+    JSON_AddItem("int", "%d", 69),
+    JSON_Array("myarray", 
+        JSON_AddItemArray("%s", "option1"),
+        JSON_AddItemArray("%s", "option2"),
+        JSON_AddItemArray("%s", "option3"),
+        JSON_AddItemArray("%s", "option4")
+    )
+);
+```
+### Result of Payload Variable
 ```json
 {
-  "name": "samp",
-  "age": 7,
-  "height": 120.0,
-  "arrayWithObject": [
-    {
-      "discord": "samp-lab",
-      "players": 22
-    },
-    {
-      "discord": "central studios",
-      "players": 45  
-    }
+  "string": "string", 
+  "floating": 210.119995, 
+  "int": 69, 
+  "myarray": [
+    "option1", 
+    "option2", 
+    "option3", 
+    "option4"
   ]
 }
 ```
 
-### Get with above Json Example
+## 📖 Reading
 ```pawn
-new name[...]; 
-json_string(stringJson, "name", name); -> return -> samp
+new 
+    Float:floatingBuff,
+    intBuff,
+    arrayLength,
+    stringBuff[32]
+;
 
-new age;
-json_int(stringJson, "age", age); -> return -> 7
+JSON_GetString(payload, "string", stringBuff);
+JSON_GetFloat(payload, "floating", floatingBuff);
+JSON_GetInt(payload, "int", intBuff);
+arrayLength = JSON_GetArrayLen(payload, "myarray");
 
-new Float:height;
-json_float(stringJson, "height", height); -> return  -> 120.0
+Results:
+stringBuff -> string
+floatingBuff -> 210.119995
+intBuff -> 69
+arrayLength -> myArray: 4
 
-new field[...];
-for(new i = 0; i < json_array_length(stringJson, "arrayWithObject"); i++) {
-    json_array_get(stringJson, "arrayWithObject", i, field);
+for(new i = 0; i < arrayLength; i++) {
+    new stringArray[32];
+    JSON_GetArrayItem(payload, "myarray", i, stringArray);
 
-    // Now you can use the same methods above
-    new discord[...];
-    json_string(field, "discord", discord); -> return -> "samp-lab" if two index "central studios"
-  
-    new players;
-    json_int(field, "players", players); -> return -> 22 if two index 45
+    Results:
+      - option1
+      - option2
+      - option3
+      - option4
 }
 ```
 
 # 🚀 Natives
 ```pawn
-bool:json_has_key(const jsonStr[], const key[]);
-bool:json_string(const jsonStr[], const key[], value[], const size = sizeof(value));
-bool:json_int(const jsonStr[], const key[], &value);
-bool:json_float(const jsonStr[], const key[], &Float:value);
-bool:json_bool(const jsonStr[], const key[], &:value);
-json_array_length(const jsonStr[], const key[]);
-bool:json_array_get(const jsonStr[], const key[], index, value[], const size = sizeof(value));
+// Creations
+JSON_Object(...);
+JSON_Array(const title[], ...);
+JSON_AddItem(const title[], const fmt[], {Float, _}:...);
+JSON_AddItemArray(const fmt[], {Float, _}:...);
+
+// Readings
+bool:JSON_GetInt(const jsonStr[], const key[], &value);
+bool:JSON_GetBool(const jsonStr[], const key[], &bool:value);
+bool:JSON_GetFloat(const jsonStr[], const key[], &Float:value);
+bool:JSON_GetString(const jsonStr[], const key[], value[], const size = sizeof(value));
+bool:JSON_HasKey(const jsonStr[], const key[]);
+JSON_GetArrayLen(const jsonStr[], const key[]);
+bool:JSON_GetArrayItem(const jsonStr[], const key[], index, value[], const size = sizeof(value));
 ```
 
 # 🤍 Thanks
-- Microsoft Copilot (Helped with array creation logic and testing)
+- Microsoft Copilot and Gemini (Helped with array creation logic and testing)
