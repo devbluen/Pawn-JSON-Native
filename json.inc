@@ -151,25 +151,34 @@ stock JSON_GetArrayLen(const jsonStr[], const key[]) {
     if (pos == -1) return 0;
 
     pos += strlen(keyWithQuotes);
-    while (SAFE_INDEX(jsonStr, pos) && jsonStr[pos] <= ' ') pos++;
-
-    if (!SAFE_INDEX(jsonStr, pos) || jsonStr[pos] != '[') return 0;
-
-    pos++;
-    new count = 0;
     
-    while (SAFE_INDEX(jsonStr, pos) && jsonStr[pos] != ']') {
-        while (SAFE_INDEX(jsonStr, pos) && (jsonStr[pos] <= ' ' || jsonStr[pos] == ',')) pos++;
+    while (jsonStr[pos] && jsonStr[pos] <= ' ') pos++;
+    if (jsonStr[pos] != '[') return 0;
+    
+    pos++;
+    
+    new count = 0;
+    while (jsonStr[pos] != '\0') {
+        while (jsonStr[pos] && (jsonStr[pos] <= ' ' || jsonStr[pos] == ',')) pos++;
         if (jsonStr[pos] == ']' || jsonStr[pos] == '\0') break;
-        
+
         count++;
-        
+
         new depth = 0;
-        while (SAFE_INDEX(jsonStr, pos)) {
-            if (jsonStr[pos] == '{' || jsonStr[pos] == '[') depth++;
-            else if (jsonStr[pos] == '}' || jsonStr[pos] == ']') depth--;
-            
-            if (depth == 0 && (jsonStr[pos] == ',' || jsonStr[pos] == ']')) break;
+        new bool:inQuotes = false;
+
+        while (jsonStr[pos] != '\0') {
+            if (jsonStr[pos] == '\"' && (pos == 0 || jsonStr[pos-1] != '\\')) {
+                inQuotes = !inQuotes;
+            }
+
+            if (!inQuotes) {
+                if (jsonStr[pos] == '{' || jsonStr[pos] == '[') depth++;
+                else if (jsonStr[pos] == '}' || jsonStr[pos] == ']') depth--;
+
+                if (depth == 0 && (jsonStr[pos] == ',' || jsonStr[pos] == ']')) break;
+                if (depth < 0) break; 
+            }
             pos++;
         }
     }
