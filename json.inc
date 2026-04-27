@@ -1,3 +1,7 @@
+#if defined _jsonblu_function
+	#endinput
+#endif
+#define _jsonblu_function
 
             // Macros
 #if !defined MAX_JSON_KEY_LEN
