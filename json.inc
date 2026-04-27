@@ -4,6 +4,10 @@
     #define MAX_JSON_KEY_LEN 64
 #endif
 
+#if !defined MAX_JSON_LEN
+    #define MAX_JSON_LEN 512
+#endif
+
 
 
 /*
@@ -233,7 +237,7 @@ stock bool:JSON_GetArrayItem(const jsonStr[], const key[], index, value[], const
 stock JSON_AddItem(const title[], const fmt[], {Float, _}:...) {
 
     new 
-        fmtBuff[512],
+        fmtBuff[MAX_JSON_LEN],
         titleBuff[32],
         optionBuff[sizeof fmtBuff + 32]
     ;
@@ -249,7 +253,7 @@ stock JSON_AddItem(const title[], const fmt[], {Float, _}:...) {
 
 stock JSON_AddItemArray(const fmt[], {Float, _}:...) {
 
-    new optionBuff[512];
+    new optionBuff[MAX_JSON_LEN];
     format(optionBuff, sizeof optionBuff, fmt, ___(1));
     strcopy(optionBuff, JSON_AddItem("", optionBuff));
     return optionBuff;
@@ -257,7 +261,7 @@ stock JSON_AddItemArray(const fmt[], {Float, _}:...) {
 
 stock JSON_Object(...) {
     new 
-        dest[512],
+        dest[MAX_JSON_LEN],
         maxlength = sizeof dest,
         num = numargs(),
         cur_len = 0
