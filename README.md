@@ -2,7 +2,7 @@
 A lightweight and efficient library to generate and parse JSON data directly in Pawn. This include is designed for developers who need JSON support in SA-MP/open.mp without relying on external plugins (.dll or .so)
 
 # 🪶 How to use examples
-## 🍪 Creation
+## 📝 Creation
 ```pawn
 new payload[MAX_JSON_LEN];
 payload = JSON_Object(
@@ -63,6 +63,9 @@ for(new i = 0; i < arrayLength; i++) {
       - option4
 }
 ```
+
+# 🍪 Dependencies
+- YSI-Includes: https://github.com/pawn-lang/YSI-Includes/releases
 
 # 🚀 Natives
 ```pawn
