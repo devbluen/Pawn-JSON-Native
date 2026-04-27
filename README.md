@@ -1,4 +1,4 @@
-# ♟️ Pawn JSON Native (Plugin-less)
+# 🫧 Pawn JSON Native (Plugin-less)
 A lightweight and efficient library to generate and parse JSON data directly in Pawn. This include is designed for developers who need JSON support in SA-MP/open.mp without relying on external plugins (.dll or .so)
 
 # 🪶 How to use examples
