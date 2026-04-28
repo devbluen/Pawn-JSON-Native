@@ -5,10 +5,6 @@
 #define _jsonblu_function
 
             // Macros
-#if !defined MAX_JSON_KEY_LEN
-    #define MAX_JSON_KEY_LEN 64
-#endif
-
 #if !defined MAX_JSON_LEN
     #define MAX_JSON_LEN 512
 #endif
@@ -29,34 +25,6 @@
                     8""88888P'      o888o      `Y8bood8P'   `Y8bood8P'  o888o  o888o 8""88888P'  
 
 */
-
-static stock bool:IsNumeric(const szInput[]) {
-	new iChar, i = 0;
-	while ((iChar = szInput[i++])) if (!('0' <= iChar <= '9')) return false;
-	return true;
-}
-
-static stock bool:IsFloat(const szInput[]) {
-    
-    new 
-        iChar, 
-        i = 0, 
-        bool:hasPoint = false, 
-        iDigits = 0
-    ;
-
-    if (szInput[0] == '-') i++;
-    while ((iChar = szInput[i++])) {
-        if (iChar == '.') {
-            if (hasPoint) 
-                return false;
-            hasPoint = true;
-        } 
-        else if ('0' <= iChar <= '9') iDigits++;
-        else return false; 
-    }
-    return (hasPoint && iDigits > 0);
-}
 
 static stock bool:SAFE_INDEX(const str[], idx)
     return (idx >= 0 && idx < strlen(str));
